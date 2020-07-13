@@ -11,4 +11,4 @@ The code is formatted in a way to facilitate understanding and interpretation by
 
 Raw sequencing data has been submitted to GEO and is available under the ID GSE98647.
 Processed data files used in the R vignette contained in this repo are stored on the German GWDG cloud due to file size restrictions on GitHub.
-The Rmd/html document provides download links to the processed data files.
+The Rmd document provides download links to the processed data files.

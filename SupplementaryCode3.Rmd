@@ -1,0 +1,746 @@
+---
+title: "Supplementary Code: Transgenerational inheritance of impaired larval T cell development in zebrafish"
+author: "Norimasa Iwanami, Divine-Fondzenyuy Lawir, Katarzyna Sikora, Connor O'Meara, Kohei Takeshita, Michael Schorpp, Thomas Boehm"
+
+output: 
+    html_document:
+      fig_caption: yes
+      toc: true
+      toc_float: true
+      toc_depth: 4
+fontsize: 14pt
+fig_caption: true
+geometry: margin=0.6in   
+
+#header-includes:   
+#  \usepackage{color}
+---
+
+```{r setup, include=FALSE}
+start_time <- Sys.time()
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+opts_chunk$set(tidy.opts=list(width.cutoff=75),tidy=TRUE)
+opts_chunk$set(width=75)
+```
+
+## **Summary**
+
+This document provides the R code and accompanying explanations to reproduce Figures 1 e-f, 6 a-d, 7 b as well as Supplementary Figures 2 b-d and 5 a from the manuscript with working title "Transgenerational inheritance of impaired larval T cell development in zebrafish" by Iwanami et al..  
+The analysis starts with SNP and coverage-filtered methylation ratios as well as tables with results of differential methylation analysis and walks the reader through the data processing underlying the manuscript figures.  A copy of this document will be deposited on GitHub under https://github.com/katsikora/Iwanami2019_SupplementaryCodeAndData_A upon publication. The code is formatted in a way to facilitate understanding and interpretation by a lay R user.
+This code is authored by Katarzyna Sikora.
+   
+<hr color="blue" >
+<h4 style="color:blue">Input data</h4>   
+<hr color="blue" >
+
+Input data (methylation matrices saved in the binary RData format) can be obtained under:  
+
+*  Figure 1e: "https://owncloud.gwdg.de/index.php/s/yukRgs4sCCaIJBh/download" (zebrafish larvae single CpG methylation values),
+*  Figure 1f and Figure 6a left panel: "https://owncloud.gwdg.de/index.php/s/rnhnQNXbsT6MyuK/download" (zebrafish sperm single CpG methylation values),
+*  Figure 6a right panel: "https://owncloud.gwdg.de/index.php/s/yBqvW1OFSA57lC9/download" (zebrafish G4 sperm single CpG methylation values),
+*  Figure 6b: "https://owncloud.gwdg.de/index.php/s/sHTiST0yjvMEXv6/download" (zebrafish G4 sperm unchanged candidate DMRs re-evaluation in G2 sperm, RData format); "https://owncloud.gwdg.de/index.php/s/IC1SivxF5Kh3xmH/download" (zebrafish G4 sperm hypomethylated candidate DMRs re-evaluation in G2 sperm, RData format); "https://owncloud.gwdg.de/index.php/s/gKeTusEW2RphUII/download" (zebrafish G4 sperm hypermethylated candidate DMRs re-evaluation in G2 sperm, RData format),
+*  Figure 6c-d: "https://owncloud.gwdg.de/index.php/s/IllgF5WJh6nQbWj/download" (hypomethylated DMRs in zebrafish G4 sperm); "https://owncloud.gwdg.de/index.php/s/sycC2qgeLFWsGsL/download" (hypermethylated DMRs in zebrafish G4 sperm),
+*  Figure 7b: "https://owncloud.gwdg.de/index.php/s/SwxeMrLXVXz43Jq/download" (zebrafish G4 sperm DMR methylation values, RData format);
+"https://owncloud.gwdg.de/index.php/s/aPaBBsfTQ9Mh72U/download" (zebrafish G4 sperm DMR topTable, text format)
+*  Supplementary Figure 2b: "https://owncloud.gwdg.de/index.php/s/xM4iV7c0uBdbYtq/download" (zebrafish CpG island methylation values in G2 and G4 zebrafish sperm, RData format); "https://owncloud.gwdg.de/index.php/s/mdoY3EjAOJoM32X/download" (zebrafish promoter methylation values in G2 and G4 zebrafish sperm, RData format);
+"https://owncloud.gwdg.de/index.php/s/AReo7EfJbRhKIbC/download" (zebrafish exon methylation values in G2 and G4 zebrafish sperm, RData format);
+"https://owncloud.gwdg.de/index.php/s/uYQ5Yl8587aI2Ng/download" (zebrafish intron methylation values in G2 and G4 zebrafish sperm, RData format);
+"https://owncloud.gwdg.de/index.php/s/ap1hCKnBcZc0CkP/download" (zebrafish intergenic region methylation values in G2 and G4 zebrafish sperm, RData format);
+"https://owncloud.gwdg.de/index.php/s/tHtigelOj443mnT/download" (zebrafish placeholder nucleosomal region methylation values in G2 and G4 zebrafish sperm, RData format),
+*  Supplementary Figure 2c: "https://owncloud.gwdg.de/index.php/s/SFlvlC2XlBs8ioO/download" (Bogdanovic 2016 24hpf vs epiboly hypermethylated DMR methylation values in G2 and G4 zebrafish sperm, RData format);
+"https://owncloud.gwdg.de/index.php/s/5RJ5NKdeGd6zCzT/download" (Bogdanovic 2016 24hpf vs epiboly hypomethylated DMR methylation values in G2 and G4 zebrafish sperm, RData format);
+"https://owncloud.gwdg.de/index.php/s/o9WDVlqu977sTjF/download" (Bogdanovic 2016 48hpf vs 24hpf hypermethylated DMR methylation values in G2 and G4 zebrafish sperm, RData format);
+"https://owncloud.gwdg.de/index.php/s/0IbEcVV3SD6K2qo/download" (Bogdanovic 2016 48hpf vs 24hpf hypomethylated DMR methylation values in G2 and G4 zebrafish sperm, RData format),
+*  Supplementary Figure 2d: "https://owncloud.gwdg.de/index.php/s/Z1Rab7KdJWdGJEK/download" (zebrafish genomic repeats methylation values in G2 zebrafish sperm, RData format);
+"https://owncloud.gwdg.de/index.php/s/mYs5jyKUg5b7Kf4/download" (zebrafish genomic repeats methylation values in G4 zebrafish sperm, RData format)
+*  Supplementary Figure 5a: "https://owncloud.gwdg.de/index.php/s/m4f74VNi2hhK5LO/download" (zebrafish G4 sperm group-mean DMR methylation values, RData format);
+"https://owncloud.gwdg.de/index.php/s/KxVNGRREIavcA8O/download" (zebrafish G4 sperm DMR topTable, RData format)
+
+<hr color="blue" >
+<h4 style="color:blue">Load required packages</h4>   
+<hr color="blue" >
+
+
+```{r load_packages, echo=TRUE}
+suppressPackageStartupMessages({
+library(curl,quietly=TRUE)
+library(data.table,quietly=TRUE)
+library(dplyr,quietly=TRUE)
+library(reshape2,quietly=TRUE)
+library(ggplot2,quietly=TRUE)
+library(ggalluvial,quietly=TRUE)
+library(car,quietly=TRUE)
+library(limma,quietly=TRUE)
+library(scales,quietly=TRUE)
+library(Gviz,quietly=TRUE)
+library(GenomicRanges,quietly=TRUE)
+library(RColorBrewer,quietly=TRUE)
+options(ucscChromosomeNames=TRUE,quietly=TRUE)
+library(BSgenome.Drerio.UCSC.danRer10,quietly=TRUE)
+})
+```
+   
+   
+<hr color="blue" >
+<h4 style="color:blue">Setting global options</h4>   
+<hr color="blue" >
+
+
+Set options:
+
+``` {r , echo=TRUE}
+
+options(stringsAsFactors=FALSE,na.rm=TRUE)
+```
+
+   
+<hr color="blue" >
+<h4 style="color:blue">Figure 1e: CpG Methylation ratio density in wildtype and mutant zebrafish larvae</h4>   
+<hr color="blue" >
+
+Load the zebrafish larvae methylation matrix containing NA values masking cytosines with coverage below 10 reads and/or SNP frequency at least 0.25 for main chromosomes:
+
+```{r F1E_get_data, echo=TRUE}
+con <- curl('https://owncloud.gwdg.de/index.php/s/yukRgs4sCCaIJBh/download',open='rb')
+load(con)
+close(con)
+
+dim(limdat)
+sum(is.na(limdat))
+## limdat is in a data.table format - make sure the data.table package is loaded!
+limdat
+```
+For single CpG analysis, retain CpG positions with support from all replicates:
+```{r F1E_filter_data, echo=TRUE}
+limdat.CC<-limdat[complete.cases(limdat),]
+colnames(limdat.CC)[2:ncol(limdat.CC)]<-c("WT1","WT2","WT3","MT1","MT2","MT3")
+
+dim(limdat.CC)
+sum(is.na(limdat.CC))
+
+```
+
+We would like to profile genome-wide CpG methylation ratio distributions in groups of dnmt1 wildtype and mutant fish larvae. We compute group mean methylation ratios per CpG position:
+
+```{r F1E_calc_means, echo=TRUE}
+limdat.CC.Means<-data.frame(rowMeans(limdat.CC[,grep("MT",colnames(limdat.CC)),
+                                               with=FALSE]))
+colnames(limdat.CC.Means)<-"MT"
+limdat.CC.Means$WT<-rowMeans(limdat.CC[,grep("WT",colnames(limdat.CC)),with=FALSE])
+
+rownames(limdat.CC.Means)<-limdat.CC$ms
+head(limdat.CC.Means)
+
+```
+Transform data to long table format with reshape2 and generate the density plot with ggplot2:
+ 
+```{r F1E_plot, echo=TRUE,fig.cap="Figure 1e. Mean methylation ratio density in zebrafish larvae.",fig.height=5,fig.width=5}
+limdat.CC.MeansL<-melt(limdat.CC.Means,variable.name="Group",value.name="Beta.Mean")
+limdat.CC.MeansL$Group<-as.character(limdat.CC.MeansL$Group)
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Group %in% "MT"]<-"dnmt1m/m"
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Group %in% "WT"]<-"dnmt1+/+"
+limdat.CC.MeansL$Group<-factor(limdat.CC.MeansL$Group,levels=c("dnmt1+/+","dnmt1m/m"))
+ggplot(data=limdat.CC.MeansL,aes(x=Beta.Mean))+geom_density(aes(group=Group,
+      colour=Group,fill=Group),alpha=0.3)+ggtitle("All CG sites")+theme(text = element_text(size=14),
+      axis.text = element_text(size=11),axis.title = element_text(size=12))+xlab("Mean methylation ratio")+scale_colour_manual(values=c("blue","red"))+scale_fill_manual(values=c("blue","red"))
+``` 
+The density plot reveals a global hypomethylation of genomic CpG sites in dnmt1 mutant fish larvae. 
+   
+   
+<hr color="blue" >
+<h4 style="color:blue">Figure 1f: CpG Methylation ratio density in wildtype and mutant zebrafish sperm</h4>   
+<hr color="blue" >
+
+Load the zebrafish sperm methylation matrix containing NA values masking cytosines with coverage below 10 reads and/or SNP frequency at least 0.25 for main chromosomes:
+
+```{r F1F_get_data, echo=TRUE}
+con <- curl('https://owncloud.gwdg.de/index.php/s/rnhnQNXbsT6MyuK/download',open='rb')
+load(con)
+close(con)
+
+dim(limdat)
+sum(is.na(limdat))
+## limdat is in a data.table format - make sure the data.table package is loaded!
+limdat
+```
+For single CpG analysis, retain CpG positions with support from all replicates:
+```{r F1F_filter_data, echo=TRUE}
+limdat.CC<-limdat[complete.cases(limdat),]
+colnames(limdat.CC)[2:ncol(limdat.CC)]<-c("WT1","WT2","WT3","MT1","MT2","MT3")
+
+dim(limdat.CC)
+sum(is.na(limdat.CC))
+
+```
+
+We would like to profile genome-wide CpG methylation ratio distributions in groups of dnmt1 wildtype and mutant fish sperm. We compute group mean methylation ratios per CpG position:
+
+```{r F1F_calc_means, echo=TRUE}
+limdat.CC.Means<-data.frame(rowMeans(limdat.CC[,grep("MT",colnames(limdat.CC)),
+                                               with=FALSE]))
+colnames(limdat.CC.Means)<-"MT"
+limdat.CC.Means$WT<-rowMeans(limdat.CC[,grep("WT",colnames(limdat.CC)),with=FALSE])
+
+rownames(limdat.CC.Means)<-limdat.CC$ms
+head(limdat.CC.Means)
+
+```
+Transform data to long table format with reshape2 and generate the density plot with ggplot2:
+ 
+```{r, echo=TRUE,fig.cap="Figure 1f. Mean methylation ratio density in zebrafish sperm.",fig.height=5,fig.width=5}
+limdat.CC.MeansL<-melt(limdat.CC.Means,variable.name="Group",value.name="Beta.Mean")
+limdat.CC.MeansL$Group<-as.character(limdat.CC.MeansL$Group)
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Group %in% "MT"]<-"dnmt1m/m"
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Group %in% "WT"]<-"dnmt1+/+"
+limdat.CC.MeansL$Group<-factor(limdat.CC.MeansL$Group,levels=c("dnmt1+/+","dnmt1m/m"))
+ggplot(data=limdat.CC.MeansL,aes(x=Beta.Mean))+geom_density(aes(group=Group,
+      colour=Group,fill=Group),alpha=0.3)+ggtitle("All CG sites")+theme(text = element_text(size=14),
+      axis.text = element_text(size=11),axis.title = element_text(size=12))+xlab("Mean methylation ratio")+scale_colour_manual(values=c("blue","red"))+scale_fill_manual(values=c("blue","red"))
+``` 
+The density plot reveals a global hypomethylation of genomic CpG sites in dnmt1 mutant fish sperm.   
+   
+   
+<hr color="blue" >
+<h4 style="color:blue">Figure 6a left panel: CpG Violin plot of methylation ratio in wildtype and mutant G2 zebrafish sperm.</h4>   
+<hr color="blue" >
+
+
+Replot Figure 1F as violin plot.
+
+```{r F6A_plot, fig.cap="Figure 6a left panel: CpG Violin plot of methylation ratio in wildtype and mutant G2 zebrafish sperm.",fig.height=5,fig.width=5}
+limdat.CC.MeansL$Group<-as.character(limdat.CC.MeansL$Group)
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Group %in% "dnmt1m/m"]<-"G2m/m"
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Group %in% "dnmt1+/+"]<-"G2+/+"
+limdat.CC.MeansL$Group<-factor(limdat.CC.MeansL$Group,levels=c("G2+/+","G2m/m"))
+ggplot(data=limdat.CC.MeansL)+geom_violin(aes(x=Group,y=Beta.Mean,fill=Group))+ggtitle("Single CpG sites")+
+theme(text = element_text(size=16),axis.text = element_text(size=12),axis.title = element_text(size=14),axis.text.x = element_text(angle = 90, hjust = 1))+ylab("Mean methylation ratio")+scale_fill_manual(values=c("grey28","red","darkblue","darkgreen"))
+```
+
+The violin plot reveals a global hypomethylation of genomic CpG sites in dnmt1 mutant fish sperm.   
+
+      
+<hr color="blue" >
+<h4 style="color:blue">Figure 6a right panel: CpG Violin plot of methylation ratio in normal and affected G4 zebrafish sperm.</h4>   
+<hr color="blue" >
+
+Load the zebrafish sperm methylation matrix containing NA values masking cytosines with coverage below 10 reads and/or SNP frequency at least 0.25 for main chromosomes:
+
+```{r F6A_get_data, echo=TRUE}
+con <- curl('https://owncloud.gwdg.de/index.php/s/yBqvW1OFSA57lC9/download',open='rb')
+load(con)
+close(con)
+
+dim(limdat)
+sum(is.na(limdat))
+## limdat is in a data.table format - make sure the data.table package is loaded!
+limdat
+```
+
+For single CpG analysis, retain CpG positions with support from all replicates:
+
+```{r F6A_filter_data, echo=TRUE}
+limdat.CC<-limdat[complete.cases(limdat),]
+
+colnames(limdat.CC)[match(c("5s","6s","10s"), colnames(limdat.CC))]<-c("Ctrl1","Ctrl2","Ctrl3") 
+colnames(limdat.CC)[match(c("1s","4s","11s"), colnames(limdat.CC))]<-c("Pb1","Pb2","Pb3")
+
+dim(limdat.CC)
+sum(is.na(limdat.CC))
+
+```
+
+We would like to profile genome-wide CpG methylation ratio distributions in groups of normal and affected G4 fish sperm. We compute group mean methylation ratios per CpG position:
+
+```{r F6A_calc_means, echo=TRUE}
+limdat.CC.Means<-data.frame(rowMeans(limdat.CC[,grep("Pb",colnames(limdat.CC)),
+                                               with=FALSE]))
+colnames(limdat.CC.Means)<-"Pb"
+limdat.CC.Means$Ctrl<-rowMeans(limdat.CC[,grep("Ctrl",colnames(limdat.CC)),with=FALSE])
+
+rownames(limdat.CC.Means)<-limdat.CC$ms
+head(limdat.CC.Means)
+
+```
+Transform data to long table format with reshape2 and generate the violin plot with ggplot2:
+ 
+```{r, echo=TRUE,fig.cap="Figure 6a right panel. Violin plot of mean methylation ratio in zebrafish G4 sperm.",fig.height=5,fig.width=5}
+limdat.CC.MeansL<-melt(limdat.CC.Means,variable.name="Group",value.name="Beta.Mean")
+limdat.CC.MeansL$Group<-as.character(limdat.CC.MeansL$Group)
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Group %in% "Pb"]<-"G4*"
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Group %in% "Ctrl"]<-"G4+"
+limdat.CC.MeansL$Group<-factor(limdat.CC.MeansL$Group,levels=c("G4+","G4*"))
+
+ggplot(data=limdat.CC.MeansL)+geom_violin(aes(x=Group,y=Beta.Mean,fill=Group))+ggtitle("Single CpG sites")+
+theme(text = element_text(size=16),axis.text = element_text(size=12),axis.title = element_text(size=14),axis.text.x = element_text(angle = 90, hjust = 1))+ylab("Mean methylation ratio")+scale_fill_manual(values=c("grey28","red","darkblue","darkgreen"))
+``` 
+
+The violin plot of global genomic CpG site methylation reveals no apparent differences between G4+ and G4* fish sperm.  
+
+
+<hr color="blue" >
+<h4 style="color:blue">Figure 6b: Evaluation of G4 zebrafish sperm DMRs in G2 zebrafish sperm.</h4>   
+<hr color="blue" >
+
+Load results of statistical evaluation of G4 sperm candidate DMRs split by their change direction in G2 sperm:
+
+```{r F6B_get_data, echo=TRUE}
+#con <- curl('https://owncloud.gwdg.de/index.php/s/sHTiST0yjvMEXv6/download',open='rb')
+#load(con)
+#close(con)
+
+#unch<-tT
+#unch$G2<-"Unchanged/NS"
+#unch$G2[unch$adj.P.Val<0.02&unch$Diff<=(-0.2)]<-"Hypo"
+#unch$G2[unch$adj.P.Val<0.02&unch$Diff>=(0.2)]<-"Hyper"
+#unch$G4<-"Unchanged/NS"
+
+con <- curl('https://owncloud.gwdg.de/index.php/s/IC1SivxF5Kh3xmH/download',open='rb')
+load(con)
+close(con)
+
+hypo<-tT
+hypo$G2<-"Unchanged/NS"
+hypo$G2[hypo$adj.P.Val<0.02&hypo$Diff<=(-0.2)]<-"Hypo"
+hypo$G2[hypo$adj.P.Val<0.02&hypo$Diff>=(0.2)]<-"Hyper"
+hypo$G4<-"Hypo"
+
+con <- curl('https://owncloud.gwdg.de/index.php/s/gKeTusEW2RphUII/download',open='rb')
+load(con)
+close(con)
+
+hyper<-tT
+hyper$G2<-"Unchanged/NS"
+hyper$G2[hyper$adj.P.Val<0.02&hyper$Diff<=(-0.2)]<-"Hypo"
+hyper$G2[hyper$adj.P.Val<0.02&hyper$Diff>=(0.2)]<-"Hyper"
+hyper$G4<-"Hyper"
+
+all<-as.data.frame(rbind(hypo,hyper),stringsAsFactors=FALSE) #unch,
+
+table(all$G4,all$G2)
+
+```
+
+Prepare data for plotting with ggalluvial.
+
+```{r, echo=TRUE}
+plotdat<-summarize(group_by(all,G2,G4),Freq=n())
+#plotdat2<-filter(plotdat,!G4=="Unchanged/NS")
+plotdat2<-filter(plotdat,!G2=="Hyper")
+plotdat2
+is_alluvia_form(plotdat2)
+plotdat2<-as.data.frame(plotdat2,stringsAsFactors=FALSE)
+plotdat2$Direction<-"Remethylated to WT"
+plotdat2$Direction[plotdat2$G2 %in% "Hypo" & plotdat2$G4 %in% "Hyper"]<-"Overcompensated"
+plotdat2$Direction[plotdat2$G2 %in% "Hyper" & plotdat2$G4 %in% "Hyper"]<-"Remnant"
+plotdat2$Direction[plotdat2$G2 %in% "Hypo" & plotdat2$G4 %in% "Hypo"]<-"Remnant"
+plotdat2$Direction[plotdat2$G2 %in% "Unchanged/NS" & plotdat2$G4 %in% "Hyper"]<-"DeNovoMethylated"
+plotdat2$Direction[plotdat2$G2 %in% "Unchanged/NS" & plotdat2$G4 %in% "Hypo"]<-"DeNovoDemethylated"
+plotdat2
+```
+
+Plot data.
+
+```{r, echo=TRUE,fig.cap="Figure 6b. Alluvial plot of G4 sperm DMR re-evaluation in G2 sperm data.",fig.height=5,fig.width=6}
+plotdat2$G2<-factor(plotdat2$G2,levels=c("Unchanged/NS","Hypo"))
+plotdat2$G4<-factor(plotdat2$G4,levels=c("Hypo","Hyper"))
+ggplot(plotdat2,
+       aes(y = Freq, axis1 = G4, axis2 = G2)) +
+  geom_alluvium(aes(fill=Direction),width = 1/12,reverse=FALSE) + #geom_stratum(,reverse=FALSE) +
+  stat_stratum(reverse = FALSE,width = 1/12, fill = "black", color = "grey")+
+  geom_label(stat = "stratum", infer.label = TRUE,reverse=FALSE) +
+  scale_x_discrete(limits = c("G4", "G2"), expand = c(.05, .05)) +
+  scale_fill_manual(values=c("darkblue","darkgreen","darkred","grey20")) +
+  ggtitle("Genomic bin methylation status by generation")+theme(axis.text=element_text(size=12),axis.title=element_text(size=14))
+```
+   
+
+<hr color="blue" >
+<h4 style="color:blue">Figure 6c-d: Chromosome-wise numbers of de-novo DMRs in G4 zebrafish sperm.</h4>   
+<hr color="blue" >
+
+Read in tables with hypo- and hypermethylated DMRs:
+
+```{r F6C_get_data1}
+con <- curl('https://owncloud.gwdg.de/index.php/s/IllgF5WJh6nQbWj/download',open='r')
+hypo<-read.table(con,header=TRUE,as.is=TRUE,sep="\t",quote="")
+close(con)
+
+head(hypo)
+
+```
+
+```{r F6C_get_data2}
+con <- curl('https://owncloud.gwdg.de/index.php/s/sycC2qgeLFWsGsL/download',open='r')
+hyper<-read.table(con,header=TRUE,as.is=TRUE,sep="\t",quote="")
+close(con)
+
+head(hyper)
+
+```
+
+Select unique DMRs for both tables:
+
+```{r F6C_unique_DMR}
+hypo$ms<-with(hypo,paste0(Chr,"_",Start,"_",Stop))
+hypo.sub<-subset(hypo,select=c("Chr","Start","Stop","ms"))
+hypoU<-unique(hypo.sub)
+nrow(hypoU)
+
+hyper$ms<-with(hyper,paste0(Chr,"_",Start,"_",Stop))
+hyper.sub<-subset(hyper,select=c("Chr","Start","Stop","ms"))
+hyperU<-unique(hyper.sub)
+nrow(hyperU)
+```
+
+Prepare data for plotting:
+
+```{r F6C_prep_plotdat}
+hypoU$EventsXChrom<-ave(hypoU$Chr,hypoU$Chr,FUN=length)
+hyperU$EventsXChrom<-ave(hyperU$Chr,hyperU$Chr,FUN=length)
+hypoU$Direction<-"Hypo"
+hyperU$Direction<-"Hyper"
+hypoX<-unique(subset(hypoU,select=c("Chr","EventsXChrom","Direction")))
+hyperX<-unique(subset(hyperU,select=c("Chr","EventsXChrom","Direction")))
+
+plotdat<-data.frame(Chr=paste0("chr",1:25))
+hypoY<-merge(x=plotdat,y=hypoX,by="Chr",all.x=TRUE)
+hyperY<-merge(x=plotdat,y=hyperX,by="Chr",all.x=TRUE)
+plotdat2<-as.data.frame(rbind(hypoY,hyperY),stringsAsFactors=FALSE)
+plotdat2$Direction<-rep(c("hypomethylation","hypermethylation"),each=25)
+plotdat2$EventsXChrom[is.na(plotdat2$EventsXChrom)]<-0
+plotdat2$Chr<-factor(plotdat2$Chr,levels=paste0("chr",1:25))
+plotdat2$EventsXChrom<-as.numeric(plotdat2$EventsXChrom)
+
+head(plotdat2)
+```
+
+```{r F6C_plot, echo=TRUE,fig.cap="Figure 6c. Number of hypo- and hypermethylated DMRs per chromosome in G4 zebrafish sperm."}
+ggplot(data=plotdat2)+geom_bar(aes(x=Chr,y=EventsXChrom,group=Direction,fill=Direction),stat="identity",position=position_dodge())+ylab("Number of DMRs")+xlab("Chromosome")+theme(axis.text.y=element_text(size=12,color="black"),axis.text.x=element_text(size=12,color="black",angle=90),axis.title=element_text(size=14,color="black"),legend.text=element_text(size=11,color="black"),legend.title=element_text(size=12,color="black"))
+```
+
+Chromosomes 16, 6, 9, and 10 have an apparently increased number of DMRs.   
+We plot the single DMRs per chromosome as well as their methylation difference between the G4+ and G4* groups.
+
+```{r F6D_plot, echo=TRUE,fig.cap=paste0("Figure 6d: DMRs on chromosome ",c("chr6","chr9","chr10","chr16")," in G4 zebrafish sperm."),out.width="50%",out.height="50%"}
+chr_choice<-c("chr6","chr9","chr10","chr16")
+
+
+DMRhypo.GR<-unique(GRanges(seqnames=hypo$Chr,ranges=IRanges(start=as.numeric(hypo$Start),end=as.numeric(hypo$Stop)),strand="*",MeanDiff=-(hypo$MeanDiff)))
+DMRhyper.GR<-GRanges(seqnames=hyper$Chr,ranges=IRanges(start=as.numeric(hyper$Start),end=as.numeric(hyper$Stop)),strand="*",MeanDiff=-(hyper$MeanDiff))
+DMRcomb.GR<-c(DMRhypo.GR,DMRhyper.GR)
+for(i in seq_along(chr_choice)){
+    chrI<-chr_choice[i]
+    ideoTrack <- IdeogramTrack(genome = "danRer10", chromosome = chrI)
+    displayPars(ideoTrack)<-list(showTitle=FALSE,col="transparent",showAxis=FALSE)
+    gtrack <- GenomeAxisTrack(seqnames=chrI,from=1,to=seqlengths(Drerio)[names(seqlengths(Drerio)) %in% chrI])
+    displayPars(gtrack)<-list(col="black",fontcolor="black")
+    dtrack<-DataTrack(DMRcomb.GR,name="MeanDiff",type="histogram",size=0.3)#,groups=rep(c("Hypo","Hyper"),c(length(DMRhypo.GR),length(DMRhyper.GR)))
+    displayPars(dtrack) <- list(cex.legend=1,col.histogram="black",fill.histogram="black",ylim=c(-1,1),background.title="white",fontcolor.title="black",col.axis="black",baseline=0,col.baseline="black",cex.axis=1,cex.title=1)
+    png(paste0("A637.metilene.",chrI,".Gviz.png"),width=800,height=400)
+    plotTracks(list(ideoTrack,gtrack,dtrack),cex = 2,chromosome=chrI,from=1,to=seqlengths(Drerio)[names(seqlengths(Drerio)) %in% chrI])
+    dev.off()
+}
+knitr::include_graphics(paste0("A637.metilene.",chr_choice,".Gviz.png"))
+```
+
+<hr color="blue" >
+<h4 style="color:blue">Figure 7b: Methylation ratio of runx3 and rptor DMRs in wildtype and mutant G4 zebrafish sperm.</h4>   
+<hr color="blue" >
+
+Load the G4 zebrafish sperm DMR methylation matrix:
+
+```{r F7B_get_data, echo=TRUE}
+con <- curl('https://owncloud.gwdg.de/index.php/s/SwxeMrLXVXz43Jq/download',open='rb')
+load(con)
+close(con)
+
+colnames(limdat.LG.CC)[match(c("5s","6s","10s"), colnames(limdat.LG.CC))]<-c("Ctrl1","Ctrl2","Ctrl3") 
+colnames(limdat.LG.CC)[match(c("1s","4s","11s"), colnames(limdat.LG.CC))]<-c("Pb1","Pb2","Pb3") 
+
+dim(limdat.LG.CC)
+sum(is.na(limdat.LG.CC))
+head(limdat.LG.CC)
+```
+
+We identify the rows of topTable containing differential DMR methylation results for genes 'runx3' and 'rptor':
+
+```{r F7B_get_tT}
+con <- curl('https://owncloud.gwdg.de/index.php/s/aPaBBsfTQ9Mh72U/download',open='r')
+tT<-read.table(con,header=TRUE,as.is=TRUE,sep="\t",quote="")
+close(con)
+
+tT[tT$GeneSymbol %in% c("runx3","rptor"),]
+
+```
+
+We fetch the DMR methylation values using the 'Row.names' column in topTable identified in the previous step:
+
+```{r F7B_plotdat}
+runx3<-limdat.LG.CC[662,]
+rptor<-limdat.LG.CC[2774,]
+
+d<-as.data.frame(t(rbind(runx3,rptor)))
+colnames(d)<-c("runx3","rptor")
+d$SampleID<-rownames(d)
+d$Group<-"G4+"
+d$Group[grep("Pb",d$SampleID)]<-"G4*"
+
+
+plotdat<-melt(d,id.vars=c("SampleID","Group"),variable.name="Locus",value.name="MethylationRatio")
+plotdat
+```
+
+```{r F7B_plot, echo=TRUE,fig.cap="Figure 7b. Per replicate DMR methylation ratio in G4 zebrafish sperm for selected regions."}
+plotdat$Group<-factor(plotdat$Group,levels=c("G4+","G4*"))
+ggplot(plotdat)+geom_point(aes(x=Group,y=MethylationRatio,group=Group,colour=Group),size=3,alpha=0.6,position=position_jitter(width=0.2,height=0,seed=123))+facet_grid(~Locus)+scale_colour_manual(values=c("grey20","darkred"))+ylim(c(0,1))+theme(axis.text=element_text(size=12,color="black"),axis.title=element_text(size=14,color="black"),legend.text=element_text(size=11,color="black"),legend.title=element_text(size=12,color="black"),strip.text=element_text(size=12,color="black"))
+```
+
+The plot shows a trend towards hypermethylation of both regions in G4* fish sperm as compared to G4+.
+
+<hr color="blue" >
+<h4 style="color:blue">Supplementary Figure 2b: Violin plots of gene regulatory region methylation ratios in normal and affected G2 and G4 zebrafish sperm.</h4>   
+<hr color="blue" >
+
+Load zebrafish sperm methylation matrices obtained through averaging of CpG methylation values over target regions :
+
+```{r S2B_get_data, echo=TRUE}
+conL<-c('https://owncloud.gwdg.de/index.php/s/xM4iV7c0uBdbYtq/download','https://owncloud.gwdg.de/index.php/s/mdoY3EjAOJoM32X/download','https://owncloud.gwdg.de/index.php/s/AReo7EfJbRhKIbC/download','https://owncloud.gwdg.de/index.php/s/uYQ5Yl8587aI2Ng/download','https://owncloud.gwdg.de/index.php/s/ap1hCKnBcZc0CkP/download','https://owncloud.gwdg.de/index.php/s/tHtigelOj443mnT/download')
+nv<-c("CpG_islands","promoters","exons","introns","intergenic_regions","placeholder_nucleosomal_regions")
+
+limL<-mapply(function(a,b){
+  con <- curl(a,open='rb')
+  load(con)
+  close(con)
+  limdat.CC<-CGI.limdat.CC[complete.cases(CGI.limdat.CC),]
+  colnames(limdat.CC)[match(c("5s_A","6s_A","10s_A"), colnames(limdat.CC))]<-c("G4_Ctrl1","G4_Ctrl2","G4_Ctrl3") 
+  colnames(limdat.CC)[match(c("1s_A","4s_A","11s_A"), colnames(limdat.CC))]<-c("G4_Pb1","G4_Pb2","G4_Pb3")
+  colnames(limdat.CC)[match(c("Lib_A215_1","Lib_A215_2","Lib_A215_3"), colnames(limdat.CC))]<-c("G2_WT1","G2_WT2","G2_WT3") 
+  colnames(limdat.CC)[match(c("Lib_A215_4","Lib_A215_5","Lib_A215_6"), colnames(limdat.CC))]<-c("G2_Mut1","G2_Mut2","G2_Mut3")
+  limdat.CC$Region<-b
+  rownames(limdat.CC)<-limdat.CC$IntID
+  return(limdat.CC)
+},conL,nv,SIMPLIFY=FALSE)
+
+names(limL)<-NULL
+limdat<-as.data.frame(do.call(rbind,limL),stringsAsFactors=FALSE)
+head(limdat)
+```
+
+We would like to profile target interval CpG methylation ratio distributions in four fish groups. We compute group mean methylation ratios per target region:
+
+```{r S2B_calc_means, echo=TRUE}
+
+limdat.L<-melt(limdat,id.vars=c("IntID","Region"),value.name="Beta",variable.name="Sample")
+limdat.L$Sample<-as.character(limdat.L$Sample)
+limdat.L$Group<-gsub("[1-3]$","",limdat.L$Sample)
+lg<-group_by(limdat.L,IntID,Region,Group)
+limdat.CC.MeansL<-summarize(lg,Beta.Mean=mean(Beta))
+
+head(limdat.CC.MeansL)
+
+```
+
+Prepare plotting labels and generate the violin plot with ggplot2:
+ 
+```{r, echo=TRUE,fig.cap="Supplementary Figure 2b. Violin plots of gene regulatory region methylation ratios in normal and affected G2 and G4 zebrafish sperm.",fig.height=8,fig.width=11}
+limdat.CC.MeansL<-as.data.frame(limdat.CC.MeansL,stringsAsFactors=FALSE)
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Group %in% "G2_WT"]<-"G2+/+"
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Group %in% "G2_Mut"]<-"G2m/m"
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Group %in% "G4_Pb"]<-"G4*"
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Group %in% "G4_Ctrl"]<-"G4+"
+limdat.CC.MeansL$Group<-factor(limdat.CC.MeansL$Group,levels=c("G2+/+","G2m/m","G4+","G4*"))
+limdat.CC.MeansL$Region<-factor(limdat.CC.MeansL$Region,levels=c("CpG_islands","promoters","exons","introns","intergenic_regions","placeholder_nucleosomal_regions"))
+levels(limdat.CC.MeansL$Region)<-gsub("_"," ",levels(limdat.CC.MeansL$Region))
+
+ggplot(data=limdat.CC.MeansL)+geom_violin(aes(x=Group,y=Beta.Mean,fill=Group))+ggtitle("Target regions")+
+theme(text = element_text(size=16),axis.text = element_text(size=12),axis.title = element_text(size=14),axis.text.x = element_text(angle = 90, hjust = 1))+ylab("Mean methylation ratio")+scale_fill_manual(values=c("grey28","red","darkblue","darkgreen"))+facet_wrap(~Region,nrow=2)
+``` 
+
+
+The violin plots show a pronounced hypomethylation of all highly methylated regions in G2m/m fish compared to G2+/+, whereas G4* fish show methylation values undestinguishable from G4+, and G2+/+ fish. Placeholder nucleosomes are mostly unmethylated to start with, and are not further affected by the Dnmt1 methylation defect.
+
+<hr color="blue" >
+<h4 style="color:blue">Supplementary Figure 2c: Violin plots of zebrafish early development DMR methylation ratios in normal and affected G2 and G4 zebrafish sperm.</h4>   
+<hr color="blue" >
+
+Load zebrafish sperm methylation matrices obtained through averaging of CpG methylation values over target regions :
+
+```{r S2C_get_data, echo=TRUE}
+conL<-c('https://owncloud.gwdg.de/index.php/s/SFlvlC2XlBs8ioO/download','https://owncloud.gwdg.de/index.php/s/5RJ5NKdeGd6zCzT/download','https://owncloud.gwdg.de/index.php/s/o9WDVlqu977sTjF/download','https://owncloud.gwdg.de/index.php/s/0IbEcVV3SD6K2qo/download')
+nv<-c("epiboly_24hpf_increasing","epiboly_24hpf_decreasing","24hpf_48hpf_increasing","24hpf_48hpf_decreasing")
+
+limL<-mapply(function(a,b){
+  con <- curl(a,open='rb')
+  load(con)
+  close(con)
+  limdat.CC<-CGI.limdat.CC[complete.cases(CGI.limdat.CC),]
+  colnames(limdat.CC)[match(c("5s_A","6s_A","10s_A"), colnames(limdat.CC))]<-c("G4_Ctrl1","G4_Ctrl2","G4_Ctrl3") 
+  colnames(limdat.CC)[match(c("1s_A","4s_A","11s_A"), colnames(limdat.CC))]<-c("G4_Pb1","G4_Pb2","G4_Pb3")
+  colnames(limdat.CC)[match(c("Lib_A215_1","Lib_A215_2","Lib_A215_3"), colnames(limdat.CC))]<-c("G2_WT1","G2_WT2","G2_WT3") 
+  colnames(limdat.CC)[match(c("Lib_A215_4","Lib_A215_5","Lib_A215_6"), colnames(limdat.CC))]<-c("G2_Mut1","G2_Mut2","G2_Mut3")
+  limdat.CC$Region<-b
+  rownames(limdat.CC)<-limdat.CC$IntID
+  return(limdat.CC)
+},conL,nv,SIMPLIFY=FALSE)
+
+names(limL)<-NULL
+limdat<-as.data.frame(do.call(rbind,limL),stringsAsFactors=FALSE)
+head(limdat)
+```
+
+We would like to profile target interval CpG methylation ratio distributions in four fish groups. We compute group mean methylation ratios per target region:
+
+```{r S2C_calc_means, echo=TRUE}
+
+limdat.L<-melt(limdat,id.vars=c("IntID","Region"),value.name="Beta",variable.name="Sample")
+limdat.L$Sample<-as.character(limdat.L$Sample)
+limdat.L$Group<-gsub("[1-3]$","",limdat.L$Sample)
+lg<-group_by(limdat.L,IntID,Region,Group)
+limdat.CC.MeansL<-summarize(lg,Beta.Mean=mean(Beta))
+
+head(limdat.CC.MeansL)
+
+```
+
+Prepare plotting labels and generate the violin plot with ggplot2:
+ 
+```{r, echo=TRUE,fig.cap="Supplementary Figure 2c: Violin plots of zebrafish early development DMR methylation ratios in normal and affected G2 and G4 zebrafish sperm.",fig.height=8,fig.width=8}
+limdat.CC.MeansL<-as.data.frame(limdat.CC.MeansL,stringsAsFactors=FALSE)
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Group %in% "G2_WT"]<-"G2+/+"
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Group %in% "G2_Mut"]<-"G2m/m"
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Group %in% "G4_Pb"]<-"G4*"
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Group %in% "G4_Ctrl"]<-"G4+"
+limdat.CC.MeansL$Group<-factor(limdat.CC.MeansL$Group,levels=c("G2+/+","G2m/m","G4+","G4*"))
+limdat.CC.MeansL$Region<-factor(limdat.CC.MeansL$Region,levels=c("epiboly_24hpf_increasing","epiboly_24hpf_decreasing","24hpf_48hpf_increasing","24hpf_48hpf_decreasing"))
+levels(limdat.CC.MeansL$Region)<-sub("_"," > ",levels(limdat.CC.MeansL$Region))
+levels(limdat.CC.MeansL$Region)<-sub("_"," ",levels(limdat.CC.MeansL$Region))
+
+
+ggplot(data=limdat.CC.MeansL)+geom_violin(aes(x=Group,y=Beta.Mean,fill=Group))+ggtitle("Target regions")+
+theme(text = element_text(size=16),axis.text = element_text(size=12),axis.title = element_text(size=14),axis.text.x = element_text(angle = 90, hjust = 1))+ylab("Mean methylation ratio")+scale_fill_manual(values=c("grey28","red","darkblue","darkgreen"))+facet_wrap(~Region,nrow=2)
+
+```
+
+The violin plots show a pronounced hypomethylation of all highly methylated regions in G2m/m fish compared to G2+/+, whereas G4* fish show methylation values undestinguishable from G4+, and G2+/+ fish. On lowly methylated regions (increasing methylation during development), observed impact of Dnmt1 defect in G2m/m fish is lesser. 
+
+<hr color="blue" >
+<h4 style="color:blue">Supplementary Figure 2d: Density plots of zebrafish genomic repeat methylation ratios in normal and affected G2 and G4 zebrafish sperm.</h4>   
+<hr color="blue" >
+
+Load zebrafish sperm methylation matrices obtained through averaging of CpG methylation values over target regions :
+
+```{r S2D_get_data, echo=TRUE}
+conL<-c('https://owncloud.gwdg.de/index.php/s/Z1Rab7KdJWdGJEK/download','https://owncloud.gwdg.de/index.php/s/mYs5jyKUg5b7Kf4/download')
+nv<-c("G2","G4")
+
+limL<-mapply(function(a,b){
+  con <- curl(a,open='rb')
+  load(con)
+  close(con)
+  limdat.CC<-CGI.limdat.CC[complete.cases(CGI.limdat.CC),]
+  if(b %in% "G4"){
+    colnames(limdat.CC)[match(c("5s_A","6s_A","10s_A"), colnames(limdat.CC))]<-c("Ctrl1","Ctrl2","Ctrl3") 
+    colnames(limdat.CC)[match(c("1s_A","4s_A","11s_A"), colnames(limdat.CC))]<-c("Pb1","Pb2","Pb3")
+  }else{
+    colnames(limdat.CC)[match(c("Lib_A215_1","Lib_A215_2","Lib_A215_3"), colnames(limdat.CC))]<-c("Ctrl1","Ctrl2","Ctrl3")
+    colnames(limdat.CC)[match(c("Lib_A215_4","Lib_A215_5","Lib_A215_6"), colnames(limdat.CC))]<-c("Pb1","Pb2","Pb3")
+  }
+  limdat.CC$Generation<-b
+  rownames(limdat.CC)<-limdat.CC$IntID
+  return(limdat.CC)
+},conL,nv,SIMPLIFY=FALSE)
+
+names(limL)<-NULL
+limdat<-as.data.frame(do.call(rbind,limL),stringsAsFactors=FALSE)
+head(limdat)
+```
+
+We would like to profile target interval CpG methylation ratio distributions in fish groups. We compute group mean methylation ratios per target region:
+
+```{r S2D_calc_means, echo=TRUE}
+
+limdat.L<-melt(limdat,id.vars=c("IntID","Generation"),value.name="Beta",variable.name="Sample")
+limdat.L$Sample<-as.character(limdat.L$Sample)
+limdat.L$Group<-gsub("[1-3]$","",limdat.L$Sample)
+lg<-group_by(limdat.L,IntID,Generation,Group)
+limdat.CC.MeansL<-summarize(lg,Beta.Mean=mean(Beta))
+
+head(limdat.CC.MeansL)
+
+```
+
+Prepare plotting labels and generate the violin plot with ggplot2:
+ 
+```{r, echo=TRUE,fig.cap="Supplementary Figure 2d: Density plots of zebrafish genomic repeat methylation ratios in normal and affected G2 and G4 zebrafish sperm.",fig.height=8,fig.width=4}
+limdat.CC.MeansL<-as.data.frame(limdat.CC.MeansL,stringsAsFactors=FALSE)
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Generation %in% "G2" & limdat.CC.MeansL$Group %in% "Ctrl"]<-"G2+/+"
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Generation %in% "G2" & limdat.CC.MeansL$Group %in% "Pb"]<-"G2m/m"
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Generation %in% "G4" & limdat.CC.MeansL$Group %in% "Pb"]<-"G4*"
+limdat.CC.MeansL$Group[limdat.CC.MeansL$Generation %in% "G4" & limdat.CC.MeansL$Group %in% "Ctrl"]<-"G4+"
+limdat.CC.MeansL$Group<-factor(limdat.CC.MeansL$Group,levels=c("G2+/+","G2m/m","G4+","G4*"))
+limdat.CC.MeansL$Generation<-factor(limdat.CC.MeansL$Generation,levels=c("G2","G4"))
+
+
+ggplot(data=limdat.CC.MeansL,aes(x=Beta.Mean))+geom_density(aes(group=Group,
+      colour=Group,fill=Group),alpha=0.3)+ggtitle("All repeats")+theme(text = element_text(size=14),
+      axis.text = element_text(size=11),axis.title = element_text(size=12))+xlab("Mean methylation ratio")+scale_colour_manual(values=c("grey28","red","darkblue","darkgreen"))+scale_fill_manual(values=c("grey28","red","darkblue","darkgreen"))+facet_wrap(~Generation,nrow=2)
+
+```
+
+In G2m/m, a wide hypomethylation of repeats highly methylated in G2+/+ can be seen. Both G4+ and G4* show wildtype repeat methylation. 
+
+<hr color="blue" >
+<h4 style="color:blue">Supplementary Figure 5a: Pairwise candidate DMR methylation for G4 zebrafish sperm groups.</h4>   
+<hr color="blue" >
+
+Load the G4 zebrafish sperm DMR methylation matrix:
+
+```{r SF5A_get_data, echo=TRUE}
+con <- curl('https://owncloud.gwdg.de/index.php/s/m4f74VNi2hhK5LO/download',open='rb')
+load(con)
+close(con)
+
+head(limdat.LG.CC.Means)
+```
+
+We annotate the data with the filter status on the statistical metric (Pass/Fail) and identify data for rptor and runx3:
+
+```{r SF5A_get_tT}
+con <- curl('https://owncloud.gwdg.de/index.php/s/KxVNGRREIavcA8O/download',open='rb')
+load(con)
+close(con)
+
+plotdat<-limdat.LG.CC.Means
+plotdat$Filter<-"Fail"
+plotdat$Filter[rownames(plotdat) %in% rownames(tT.FDR5)]<-"Pass"
+plotdat$Diff<-plotdat$Pb-plotdat$Ctrl
+auxtab<-plotdat[c("2774","662"),]
+auxtab$GeneSymbol<-c("-rptor","-runx3")
+auxtab
+
+```
+
+Plot data:
+
+```{r SF5A, echo=TRUE,fig.cap="Supplementary Figure 5a: Pairwise candidate DMR methylation for G4 zebrafish sperm groups.",fig.height=8.2,fig.width=8.2}
+ggplot(data=plotdat)+geom_point(aes(x=Ctrl,y=Pb,colour=Filter),alpha=0.4)+scale_colour_manual(values=c("grey20","darkred"))+geom_abline(aes(intercept=0,slope=1))+geom_text(data=auxtab,aes(x=Ctrl,y=Pb,label=GeneSymbol),hjust = 0, nudge_x = 0.001,nudge_y=0.001,angle =45,size=5)+theme(axis.text=element_text(size=14),axis.title=element_text(size=16),strip.text=element_text(size=12))+xlab("DMR methylation status in G4+")+ylab("DMR methylation status in G4*")
+```
+
+
+<hr color="blue" >
+<h4 style="color:blue">Session Info</h4>   
+<hr color="blue" >
+
+The R locale setup used in preparing this vignette:
+
+```{r sessionInfo, echo=TRUE}
+sessionInfo()
+```
+
+Time needed to execute the R code in this document:
+
+```{r}
+end_time <- Sys.time()
+end_time - start_time
+```
